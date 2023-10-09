@@ -18,39 +18,48 @@ const io = require("socket.io")(server, {
 });
 let users = [];
 
-const addUser = (userId, socketId) => {
-  !users.some((user) => user.id === userId) && users.push({ userId, socketId });
-};
+// const addUser = (newUserId, socketId) => {
+ 
+//   io
+// };
 
-const removeUser = (socketId) => {
-  users = users.filter((user) => user.socketId !== socketId);
-};
+// const removeUser = (socketId) => {
+//   users = users.filter((user) => user.socketId !== socketId);
+// };
 
-const getUser = (userId) => {
-  return users.find((user) => user.userId === userId);
-};
+// const getUser = (userId) => {
+//   return users.find((user) => user.userId === userId);
+// };
 //
 io.on("connection", (socket) => {
-  console.log("a user connected.");
-  socket.on("addUser", (userId) => {
-    addUser(userId, socket.id);
+  socket.on("addUser", (newUserId) => {
+    if(!users.some((user) => user.userid === newUserId)) {
+      users.push({ userId: newUserId, socketId: socket.id});
+      console.log("a user connected.", users);
+    }
     io.emit("getUsers", users);
   });
 
   //send message
-  socket.on("sendMessage", ({ senderId, receiverId, text }) => {
-    console.log(receiverId);
-    console.log(users);
-    const user = getUser(receiverId);
-    io.to(user?.socketId).emit("getMessage", {
-      senderId,
-      text,
-    });
+  socket.on("sendMessage", (data) => {
+    const { senderId, receiverId, text } = data;
+    const user = users.find((user) => user.id === receiverId);
+    console.log("Sending from socket to :", receiverId);
+    console.log("Data: ", data);
+    if (user) {
+      io.to(user.socketId).emit("recieve-message", data)
+    }
+    // const user = getUser(receiverId);
+    // io.to(user?.socketId).emit("getMessage", {
+    //   senderId,
+    //   text,
+    // });
   });
 
   socket.on("disconnect", () => {
-    console.log("a user disconnected");
-    removeUser(socket.id);
+    users = users.filter((user) => user.socketId !== socket.id);
+    console.log("a user disconnected", users);
+    // removeUser(socket.id);
     io.emit("getUsers", users);
   });
 });
